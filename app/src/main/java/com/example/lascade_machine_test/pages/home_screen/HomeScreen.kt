@@ -24,7 +24,7 @@ fun HomeScreen() {
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
         sheetContent = { CustomBottomSheet() },
-        sheetPeekHeight = 190.dp, // Optimized height to fit content perfectly
+        sheetPeekHeight = 186.dp, // Optimized height to fit content perfectly
         modifier = Modifier.fillMaxSize(),
         contentColor = androidx.compose.ui.graphics.Color.Transparent,
         backgroundColor = androidx.compose.ui.graphics.Color.Transparent
