@@ -68,7 +68,9 @@ fun HomeScreen() {
         },
         sheetPeekHeight = animatedHeight,
         modifier = Modifier.fillMaxSize(),
-        sheetBackgroundColor = androidx.compose.ui.graphics.Color.Transparent // Added this line
+        sheetBackgroundColor = androidx.compose.ui.graphics.Color.Transparent,
+        sheetElevation = 0.dp, // Remove elevation to eliminate shadow
+        backgroundColor = androidx.compose.ui.graphics.Color.Transparent // Make scaffold background transparent
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize()) {
             // Full screen map
