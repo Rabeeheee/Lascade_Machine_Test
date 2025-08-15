@@ -39,7 +39,7 @@ fun HomeScreen() {
         3 to 290.dp, // Save route page - needs space for text input and save button
         4 to 215.dp, // Save success page - needs space for success message
         5 to 430.dp, // Load route page - needs space for route list and load button
-        6 to 750.dp, // Add locations page - needs space for search and location list
+        6 to 800.dp, // Add locations page - needs space for search and location list
         7 to 335.dp  // Map style page - needs space for map previews and apply button
     )
 

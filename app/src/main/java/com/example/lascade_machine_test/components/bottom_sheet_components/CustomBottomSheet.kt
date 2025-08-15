@@ -1,5 +1,8 @@
 package com.example.lascade_machine_test.components.bottom_sheet_components
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -31,6 +34,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import com.example.lascade_machine_test.R
+import kotlinx.coroutines.launch
 
 @Composable
 fun CustomBottomSheet(
@@ -55,20 +60,70 @@ fun CustomBottomSheet(
     externalPageChange: Int = 0
 ) {
     var currentPage by remember { mutableStateOf(0) }
+    var targetPage by remember { mutableStateOf(0) }
+    var isAnimating by remember { mutableStateOf(false) }
 
-    // Handle external page changes (from app bar buttons)
-    LaunchedEffect(externalPageChange) {
-        if (externalPageChange != currentPage && externalPageChange != 0) {
-            currentPage = externalPageChange
-        }
-    }
+    // Animation progress for smooth bounce effect
+    var animationProgress by remember { mutableStateOf(0f) }
+
+    // Smooth animated progress with bounce easing
+    val animatedProgress by animateFloatAsState(
+        targetValue = animationProgress,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium,
+            visibilityThreshold = 0.01f
+        ),
+        label = "PageBounceAnimation"
+    )
+
+    // Create coroutine scope for smooth animation sequences
+    val animationScope = rememberCoroutineScope()
+
     var routeName by remember { mutableStateOf("") }
     var selectedRouteIndex by remember { mutableStateOf(0) }
-    var selectedMapStyle by remember { mutableStateOf(0) } // 0: Classic, 1: Blueprint, 2: Night
+    var selectedMapStyle by remember { mutableStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
     var dragOffset by remember { mutableStateOf(0f) }
     val lazyListState = rememberLazyListState()
     val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+
+    // Function to perform smooth page transition with bounce
+    suspend fun performPageTransition(newPage: Int, oldPage: Int, onComplete: (Int) -> Unit) {
+        if (isAnimating) return
+
+        isAnimating = true
+
+        val direction = if (newPage > oldPage) 1f else -1f
+
+        // Phase 1: Quick bounce out
+        animationProgress = direction * 0.3f
+        delay(150)
+
+        // Phase 2: Navigate to new page
+        lazyListState.scrollToItem(newPage)
+        onComplete(newPage)
+
+        // Phase 3: Bounce in from opposite direction
+        animationProgress = -direction * 0.5f
+        delay(100)
+
+        // Phase 4: Settle to center
+        animationProgress = 0f
+        delay(300)
+
+        isAnimating = false
+    }
+
+    // Handle external page changes (from app bar buttons)
+    LaunchedEffect(externalPageChange) {
+        if (externalPageChange != currentPage && externalPageChange != 0) {
+            targetPage = externalPageChange
+            performPageTransition(externalPageChange, currentPage) { newPage ->
+                currentPage = newPage
+            }
+        }
+    }
 
     // Sample routes data
     val savedRoutes = listOf(
@@ -108,19 +163,16 @@ fun CustomBottomSheet(
         }
     }
 
-    // Enhanced page change handling with smooth animation
+    // Enhanced page change handling
     LaunchedEffect(currentPage) {
         onPageChanged(currentPage)
-        // Smooth animated scroll with custom timing
-        lazyListState.animateScrollToItem(
-            index = currentPage,
-            scrollOffset = 0
-        )
 
-        // Auto-dismiss success page
+        // Auto-dismiss success page with smooth transition
         if (currentPage == 4) {
             delay(2000)
-            currentPage = 0
+            performPageTransition(0, currentPage) { newPage ->
+                currentPage = newPage
+            }
         }
     }
 
@@ -146,7 +198,11 @@ fun CustomBottomSheet(
                                 onDragStart = { dragOffset = 0f },
                                 onDragEnd = {
                                     if (dragOffset > 150) {
-                                        currentPage = 0
+                                        animationScope.launch {
+                                            performPageTransition(0, currentPage) { newPage ->
+                                                currentPage = newPage
+                                            }
+                                        }
                                     }
                                     dragOffset = 0f
                                 }
@@ -174,100 +230,201 @@ fun CustomBottomSheet(
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Enhanced LazyRow with better animation
-            LazyRow(
-                state = lazyListState,
-                modifier = Modifier.fillMaxWidth(),
-                userScrollEnabled = false,
-                horizontalArrangement = Arrangement.spacedBy(0.dp)
+            // Content container with bounce animation applied to individual items
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .offset(x = (animatedProgress * screenWidth.value * 0.2f).dp)
             ) {
-                // Page 0: Default content
-                item {
-                    DefaultContentPage(
-                        screenWidth = screenWidth,
-                        onMenuClick = { currentPage = 1 },
-                        onAddClick = { currentPage = 6 }
-                    )
-                }
+                LazyRow(
+                    state = lazyListState,
+                    modifier = Modifier.fillMaxWidth(),
+                    userScrollEnabled = false,
+                    horizontalArrangement = Arrangement.spacedBy(0.dp)
+                ) {
+                    // Page 0: Default content
+                    item {
+                        DefaultContentPage(
+                            screenWidth = screenWidth,
+                            onMenuClick = {
+                                animationScope.launch {
+                                    performPageTransition(1, currentPage) { newPage ->
+                                        currentPage = newPage
+                                    }
+                                }
+                            },
+                            onAddClick = {
+                                animationScope.launch {
+                                    performPageTransition(6, currentPage) { newPage ->
+                                        currentPage = newPage
+                                    }
+                                }
+                            }
+                        )
+                    }
 
-                // Page 1: Route settings
-                item {
-                    RouteSettingsPage(
-                        screenWidth = screenWidth,
-                        onCloseClick = { currentPage = 0 },
-                        onDeleteClick = { currentPage = 2 },
-                        onSaveClick = { currentPage = 3 },
-                        onLoadClick = { currentPage = 5 }
-                    )
-                }
+                    // Page 1: Route settings
+                    item {
+                        RouteSettingsPage(
+                            screenWidth = screenWidth,
+                            onCloseClick = {
+                                animationScope.launch {
+                                    performPageTransition(0, currentPage) { newPage ->
+                                        currentPage = newPage
+                                    }
+                                }
+                            },
+                            onDeleteClick = {
+                                animationScope.launch {
+                                    performPageTransition(2, currentPage) { newPage ->
+                                        currentPage = newPage
+                                    }
+                                }
+                            },
+                            onSaveClick = {
+                                animationScope.launch {
+                                    performPageTransition(3, currentPage) { newPage ->
+                                        currentPage = newPage
+                                    }
+                                }
+                            },
+                            onLoadClick = {
+                                animationScope.launch {
+                                    performPageTransition(5, currentPage) { newPage ->
+                                        currentPage = newPage
+                                    }
+                                }
+                            }
+                        )
+                    }
 
-                // Page 2: Delete confirmation
-                item {
-                    DeleteConfirmationPage(
-                        screenWidth = screenWidth,
-                        onCloseClick = { currentPage = 1 },
-                        onDeleteClick = { currentPage = 0 }
-                    )
-                }
+                    // Page 2: Delete confirmation
+                    item {
+                        DeleteConfirmationPage(
+                            screenWidth = screenWidth,
+                            onCloseClick = {
+                                animationScope.launch {
+                                    performPageTransition(1, currentPage) { newPage ->
+                                        currentPage = newPage
+                                    }
+                                }
+                            },
+                            onDeleteClick = {
+                                animationScope.launch {
+                                    performPageTransition(0, currentPage) { newPage ->
+                                        currentPage = newPage
+                                    }
+                                }
+                            }
+                        )
+                    }
 
-                // Page 3: Save route
-                item {
-                    SaveRoutePage(
-                        screenWidth = screenWidth,
-                        routeName = routeName,
-                        onRouteNameChange = { routeName = it },
-                        onBackClick = { currentPage = 1 },
-                        onSaveClick = {
-                            if (routeName.isNotEmpty()) currentPage = 4
-                        }
-                    )
-                }
+                    // Page 3: Save route
+                    item {
+                        SaveRoutePage(
+                            screenWidth = screenWidth,
+                            routeName = routeName,
+                            onRouteNameChange = { routeName = it },
+                            onBackClick = {
+                                animationScope.launch {
+                                    performPageTransition(1, currentPage) { newPage ->
+                                        currentPage = newPage
+                                    }
+                                }
+                            },
+                            onSaveClick = {
+                                if (routeName.isNotEmpty()) {
+                                    animationScope.launch {
+                                        performPageTransition(4, currentPage) { newPage ->
+                                            currentPage = newPage
+                                        }
+                                    }
+                                }
+                            }
+                        )
+                    }
 
-                // Page 4: Save success
-                item {
-                    SaveSuccessPage(screenWidth = screenWidth)
-                }
+                    // Page 4: Save success
+                    item {
+                        SaveSuccessPage(screenWidth = screenWidth)
+                    }
 
-                // Page 5: Load route
-                item {
-                    LoadRoutePage(
-                        screenWidth = screenWidth,
-                        savedRoutes = savedRoutes,
-                        selectedRouteIndex = selectedRouteIndex,
-                        onRouteSelect = { selectedRouteIndex = it },
-                        onBackClick = { currentPage = 1 },
-                        onLoadClick = { currentPage = 1 }
-                    )
-                }
+                    // Page 5: Load route
+                    item {
+                        LoadRoutePage(
+                            screenWidth = screenWidth,
+                            savedRoutes = savedRoutes,
+                            selectedRouteIndex = selectedRouteIndex,
+                            onRouteSelect = { selectedRouteIndex = it },
+                            onBackClick = {
+                                animationScope.launch {
+                                    performPageTransition(1, currentPage) { newPage ->
+                                        currentPage = newPage
+                                    }
+                                }
+                            },
+                            onLoadClick = {
+                                animationScope.launch {
+                                    performPageTransition(1, currentPage) { newPage ->
+                                        currentPage = newPage
+                                    }
+                                }
+                            }
+                        )
+                    }
 
-                // Page 6: Add locations
-                item {
-                    AddLocationsPage(
-                        screenWidth = screenWidth,
-                        searchQuery = searchQuery,
-                        onSearchQueryChange = { searchQuery = it },
-                        filteredLocations = filteredLocations,
-                        onLocationSelect = { currentPage = 0 },
-                        onCloseClick = { currentPage = 0 }
-                    )
-                }
+                    // Page 6: Add locations
+                    item {
+                        AddLocationsPage(
+                            screenWidth = screenWidth,
+                            searchQuery = searchQuery,
+                            onSearchQueryChange = { searchQuery = it },
+                            filteredLocations = filteredLocations,
+                            onLocationSelect = {
+                                animationScope.launch {
+                                    performPageTransition(0, currentPage) { newPage ->
+                                        currentPage = newPage
+                                    }
+                                }
+                            },
+                            onCloseClick = {
+                                animationScope.launch {
+                                    performPageTransition(0, currentPage) { newPage ->
+                                        currentPage = newPage
+                                    }
+                                }
+                            }
+                        )
+                    }
 
-                // Page 7: Map Style Selection
-                item {
-                    MapStylePage(
-                        screenWidth = screenWidth,
-                        mapStyles = mapStyles,
-                        selectedMapStyle = selectedMapStyle,
-                        onMapStyleSelect = { selectedMapStyle = it },
-                        onCloseClick = { currentPage = 0 },
-                        onApplyClick = { currentPage = 0 }
-                    )
+                    // Page 7: Map Style Selection
+                    item {
+                        MapStylePage(
+                            screenWidth = screenWidth,
+                            mapStyles = mapStyles,
+                            selectedMapStyle = selectedMapStyle,
+                            onMapStyleSelect = { selectedMapStyle = it },
+                            onCloseClick = {
+                                animationScope.launch {
+                                    performPageTransition(0, currentPage) { newPage ->
+                                        currentPage = newPage
+                                    }
+                                }
+                            },
+                            onApplyClick = {
+                                animationScope.launch {
+                                    performPageTransition(0, currentPage) { newPage ->
+                                        currentPage = newPage
+                                    }
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
     }
 }
-
 @Composable
 private fun DefaultContentPage(
     screenWidth: androidx.compose.ui.unit.Dp,
