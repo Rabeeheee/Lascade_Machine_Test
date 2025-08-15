@@ -42,7 +42,6 @@ fun CustomAppBar(
             // PRO badge
             ProBadge(icon = Icons.Filled.Diamond)
 
-            // Right side buttons using reusable composable
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -51,12 +50,12 @@ fun CustomAppBar(
                 CustomIconButton(
                     icon = Icons.Filled.LocationOn,
                     contentDescription = "Map Style",
-                    onClick = onMapStyleClick // This will navigate to the map style page
+                    onClick = onMapStyleClick
                 )
                 CustomIconButton(
                     icon = Icons.Default.Settings,
                     contentDescription = "Settings",
-                    onClick = { /* On click code */ }
+                    onClick = { }
                 )
             }
         }

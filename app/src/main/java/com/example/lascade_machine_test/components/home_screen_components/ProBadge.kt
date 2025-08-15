@@ -44,7 +44,6 @@ fun ProBadge(
             drawPath(path, Color(0xFF8A2BE2), style = Fill)
         }
 
-        // Icon + Text
         Row(
             modifier = Modifier
                 .fillMaxSize()
