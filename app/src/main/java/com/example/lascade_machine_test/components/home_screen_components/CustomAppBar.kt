@@ -24,7 +24,9 @@ import androidx.compose.ui.unit.sp
 import com.example.lascade_machine_test.components.common.ProBadge
 
 @Composable
-fun CustomAppBar() {
+fun CustomAppBar(
+    onMapStyleClick: () -> Unit = {}
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -40,20 +42,20 @@ fun CustomAppBar() {
             // PRO badge
             ProBadge(icon = Icons.Filled.Diamond)
 
-
             // Right side buttons using reusable composable
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+
                 CustomIconButton(
-                    icon = Icons.Filled.Place,
-                    contentDescription = "Download",
-                    onClick = { /* On click code */ }
+                    icon = Icons.Filled.LocationOn,
+                    contentDescription = "Map Style",
+                    onClick = onMapStyleClick // This will navigate to the map style page
                 )
                 CustomIconButton(
                     icon = Icons.Default.Settings,
-                    contentDescription = "Location",
+                    contentDescription = "Settings",
                     onClick = { /* On click code */ }
                 )
             }
