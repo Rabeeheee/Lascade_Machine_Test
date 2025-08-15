@@ -81,69 +81,72 @@ class BottomSheetState {
     ) {
         if (isAnimating) return
         isAnimating = true
+        try {
+            val direction = if (newPage > currentPage) -1f else 1f
+            val animationDuration = 100
 
-        val direction = if (newPage > currentPage) -1f else 1f
-        val animationDuration = 100
+            // Fade out and slide current content
+            animationScope.launch {
+                animationAlpha.animateTo(
+                    targetValue = 0.3f,
+                    animationSpec = tween(durationMillis = animationDuration / 3)
+                )
+            }
 
-        //Fade out and slide current content
-        animationScope.launch {
-            animationAlpha.animateTo(
-                targetValue = 0.3f,
+            animationScope.launch {
+                animationScale.animateTo(
+                    targetValue = 0.95f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                )
+            }
+
+            animationOffset.animateTo(
+                targetValue = direction * 50f,
                 animationSpec = tween(durationMillis = animationDuration / 3)
             )
-        }
 
-        animationScope.launch {
+            // Change page
+            lazyListState.scrollToItem(newPage)
+            currentPage = newPage
+            onComplete(newPage)
+
+            // Slide in from opposite direction
+            animationOffset.snapTo(-direction * 50f)
+
+            // Animate to final position
+            animationScope.launch {
+                animationOffset.animateTo(
+                    targetValue = 0f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                )
+            }
+
+            animationScope.launch {
+                animationAlpha.animateTo(
+                    targetValue = 1f,
+                    animationSpec = tween(durationMillis = animationDuration / 2)
+                )
+            }
+
             animationScale.animateTo(
-                targetValue = 0.95f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
-                )
-            )
-        }
-
-        animationOffset.animateTo(
-            targetValue = direction * 50f,
-            animationSpec = tween(durationMillis = animationDuration / 3)
-        )
-
-        // Change page
-        lazyListState.scrollToItem(newPage)
-        currentPage = newPage
-        onComplete(newPage)
-
-        // Slide in from opposite direction
-        animationOffset.snapTo(-direction * 50f)
-
-        // Animate to final position
-        animationScope.launch {
-            animationOffset.animateTo(
-                targetValue = 0f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
-                )
-            )
-        }
-
-        animationScope.launch {
-            animationAlpha.animateTo(
                 targetValue = 1f,
-                animationSpec = tween(durationMillis = animationDuration / 2)
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                )
             )
+
+            // Increase delay to ensure animations complete
+            delay(150)
+        } finally {
+            isAnimating = false
         }
-
-        animationScale.animateTo(
-            targetValue = 1f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioMediumBouncy,
-                stiffness = Spring.StiffnessMedium
-            )
-        )
-
-        delay(100)
-        isAnimating = false
     }
 
     fun navigateToPage(
