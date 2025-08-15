@@ -93,7 +93,7 @@ class BottomSheetState {
                 )
             }
 
-             animationScope.launch {
+            animationScope.launch {
                 animationScale.animateTo(
                     targetValue = 0.95f,
                     animationSpec = spring(
