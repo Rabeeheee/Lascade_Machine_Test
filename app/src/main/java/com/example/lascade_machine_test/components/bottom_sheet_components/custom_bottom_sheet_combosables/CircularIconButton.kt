@@ -1,4 +1,4 @@
-package com.example.lascade_machine_test.components.bottom_sheet_components
+package com.example.lascade_machine_test.components.bottom_sheet_components.custom_bottom_sheet_combosables
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
